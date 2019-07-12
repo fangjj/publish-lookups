@@ -10,7 +10,7 @@ class PublishLookup {
     this.lookupObservers = [];
 
     this.calculateLookupFields();
-    this.republishLookups = debounced(this.republishLookups.bind(this));
+    // this.republishLookups = debounced(this.republishLookups.bind(this));
   }
 
   _getCollectionName() {
@@ -36,8 +36,7 @@ class PublishLookup {
     this.lookupObservers.forEach(observer => observer.stop());
 
     if (addedPrimaryDocIds) {
-      const primaryDocsIds = Array.from(addedPrimaryDocIds.keys());
-
+      const primaryDocsIds = Array.from(addedPrimaryDocIds.keys()).map(item => item._id || item);
       const primaryDocs = collection
         .find({ _id: { $in: primaryDocsIds } }, { fields: lookupFields })
         .fetch();
@@ -95,9 +94,10 @@ class PublishLookup {
 
     this.publishLookups();
 
-    return {
-      stop: this.stop.bind(this)
-    };
+    sub.onStop(() => {
+      this.stop.call(this);
+    });
+    return [this.primaryObserver, ...this.lookupObservers];
   }
 
   publishLookups() {
@@ -138,7 +138,7 @@ class PublishLookup {
   }
 
   stop() {
-    if (primaryObserver) {
+    if (this.primaryObserver) {
       this.primaryObserver.stop();
     }
     this.lookupObservers.forEach(observer => {
