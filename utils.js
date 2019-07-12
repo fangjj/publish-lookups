@@ -14,3 +14,13 @@ export const debounced = fn => {
     }, timeoutMs);
   };
 };
+
+
+export const popAttr = (obj, attribute, defaultValue) => {
+  let value = defaultValue;
+  if (obj && typeof obj[attribute] != 'undefined') {
+    value = obj[attribute];
+    delete obj[attribute];
+  }
+  return value;
+}

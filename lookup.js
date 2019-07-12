@@ -1,4 +1,4 @@
-import { debounced } from "./utils";
+import { debounced, popAttr } from "./utils";
 
 class PublishLookup {
   constructor(collection, selector, options, lookups) {
@@ -36,7 +36,9 @@ class PublishLookup {
     this.lookupObservers.forEach(observer => observer.stop());
 
     if (addedPrimaryDocIds) {
-      const primaryDocsIds = Array.from(addedPrimaryDocIds.keys()).map(item => item._id || item);
+      const primaryDocsIds = Array.from(addedPrimaryDocIds.keys()).map(
+        item => item._id || item
+      );
       const primaryDocs = collection
         .find({ _id: { $in: primaryDocsIds } }, { fields: lookupFields })
         .fetch();
@@ -68,9 +70,8 @@ class PublishLookup {
             ...selector,
             [foreignField]: { $in: localFieldValues[localField] }
           };
-
+          const reactive = popAttr(options, 'reactive', true);
           const joinedDocsCursor = collection.find(joinQuery, options);
-
           const observer = joinedDocsCursor.observeChanges({
             added: (id, fields) => {
               sub.added(collection._name, id, fields);
@@ -82,7 +83,9 @@ class PublishLookup {
               sub.removed(collection._name, id);
             }
           });
-
+          if (reactive === false) {
+            observer.stop();
+          }
           return observer;
         }
       );
@@ -102,7 +105,7 @@ class PublishLookup {
 
   publishLookups() {
     const { collection, selector, options, sub } = this;
-
+    const reactive = popAttr(options, 'reactive', true);
     const cursor = collection.find(selector, options);
 
     const observer = cursor.observeChanges({
@@ -135,6 +138,9 @@ class PublishLookup {
     });
 
     this.primaryObserver = observer;
+    if (reactive === false) {
+      this.primaryObserver.stop()
+    }
   }
 
   stop() {
